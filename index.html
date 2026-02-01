@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ក្លាក្លុក - Kla Klouk Khmer Dice Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(233, 69, 96, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        /* Player Info */
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .balance {
+            font-size: 1.5rem;
+            color: #ffd700;
+        }
+
+        .balance span {
+            font-weight: bold;
+        }
+
+        .current-bet {
+            font-size: 1.2rem;
+            color: #00ff88;
+        }
+
+        /* Betting Board */
+        .betting-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .bet-card {
+            background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+
+        .bet-card.selected {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .bet-card .symbol {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            display: block;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .bet-card .name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .bet-card .name-khmer {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .bet-card .bet-amount {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e94560;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            display: none;
+        }
+
+        .bet-card.has-bet .bet-amount {
+            display: block;
+        }
+
+        .bet-card .match-count {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #00ff88;
+            color: #1a1a2e;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .bet-card.matched .match-count {
+            display: flex;
+            animation: pulse 0.5s ease infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Bet Controls */
+        .bet-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 4px dashed rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .chip:hover {
+            transform: scale(1.1);
+        }
+
+        .chip.selected {
+            transform: scale(1.15);
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .chip-10 { background: linear-gradient(145deg, #4a90d9, #357abd); color: white; }
+        .chip-50 { background: linear-gradient(145deg, #50c878, #3da85c); color: white; }
+        .chip-100 { background: linear-gradient(145deg, #e94560, #c73e54); color: white; }
+        .chip-500 { background: linear-gradient(145deg, #9b59b6, #8e44ad); color: white; }
+        .chip-1000 { background: linear-gradient(145deg, #f39c12, #d68910); color: white; }
+
+        /* Dice Area */
+        .dice-area {
+            background: linear-gradient(145deg, #2d5016, #1e3a0f);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 5px solid #4a7c23;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .dice-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .dice {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(145deg, #fff, #e0e0e0);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
+        }
+
+        .dice.rolling {
+            animation: roll 0.1s ease infinite;
+        }
+
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(90deg) scale(0.9); }
+            50% { transform: rotate(180deg) scale(1); }
+            75% { transform: rotate(270deg) scale(0.9); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        /* Game Controls */
+        .game-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-roll {
+            background: linear-gradient(145deg, #e94560, #c73e54);
+            color: white;
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn-roll:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(233, 69, 96, 0.5);
+        }
+
+        .btn-roll:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-clear {
+            background: linear-gradient(145deg, #6c757d, #5a6268);
+            color: white;
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-3px);
+        }
+
+        .btn-new-game {
+            background: linear-gradient(145deg, #28a745, #218838);
+            color: white;
+        }
+
+        .btn-new-game:hover {
+            transform: translateY(-3px);
+        }
+
+        /* Result Display */
+        .result-display {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .result-display.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-display.win {
+            background: linear-gradient(145deg, rgba(40, 167, 69, 0.3), rgba(33, 136, 56, 0.3));
+            border: 2px solid #28a745;
+        }
+
+        .result-display.lose {
+            background: linear-gradient(145deg, rgba(220, 53, 69, 0.3), rgba(200, 35, 51, 0.3));
+            border: 2px solid #dc3545;
+        }
+
+        .result-display h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .result-display p {
+            font-size: 1.2rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* History */
+        .history {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .history h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .history-item .dice-result {
+            font-size: 1.5rem;
+        }
+
+        .history-item .win-amount {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .history-item .lose-amount {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        /* Instructions */
+        .instructions {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .instructions h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .instructions li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .instructions li:last-child {
+            border-bottom: none;
+        }
+
+        .payout-table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+
+        .payout-table th, .payout-table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .payout-table th {
+            background: rgba(233, 69, 96, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .betting-board {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .dice {
+                width: 70px;
+                height: 70px;
+                font-size: 2.5rem;
+            }
+
+            .bet-card .symbol {
+                font-size: 3rem;
+            }
+
+            .player-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .betting-board {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .chip {
+                width: 50px;
+                height: 50px;
+                font-size: 0.8rem;
+            }
+
+            .btn {
+                padding: 12px 25px;
+                font-size: 1rem;
+            }
+        }
+
+        /* Confetti Animation */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #ffd700;
+            animation: confetti-fall 3s ease-out forwards;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎲 ក្លាក្លុក 🎲</h1>
+            <p>Kla Klouk - Traditional Khmer Dice Game</p>
+        </div>
+
+        <!-- Player Info -->
+        <div class="player-info">
+            <div class="balance">💰 Balance: <span id="balance">1000</span> ៛</div>
+            <div class="current-bet">🎯 Total Bet: <span id="totalBet">0</span> ៛</div>
+        </div>
+
+        <!-- Betting Board -->
+        <div class="betting-board" id="bettingBoard">
+            <div class="bet-card" data-symbol="gourd" data-emoji="🍐">
+                <span class="match-count">0</span>
+                <span class="bet-amount">0</span>
+                <span class="symbol">🍐</span>
+                <div class="name">Gourd</div>
+                <div class="name-khmer">ខ្លោក</div>
+            </div>
+            <div class="bet-card" data-symbol="crab" data-emoji="🦀">
+                <span class="match-count">0</span>
+                <span class="bet-amount">0</span>
+                <span class="symbol">🦀</span>
+                <div class="name">Crab</div>
+                <div class="name-khmer">ក្ដាម</div>
+            </div>
+            <div class="bet-card" data-symbol="fish" data-emoji="🐟">
+                <span class="match-count">0</span>
+                <span class="bet-amount">0</span>
+                <span class="symbol">🐟</span>
+                <div class="name">Fish</div>
+                <div class="name-khmer">ត្រី</div>
+            </div>
+            <div class="bet-card" data-symbol="rooster" data-emoji="🐓">
+                <span class="match-count">0</span>
+                <span class="bet-amount">0</span>
+                <span class="symbol">🐓</span>
+                <div class="name">Rooster</div>
+                <div class="name-khmer">មាន់</div>
+            </div>
+            <div class="bet-card" data-symbol="shrimp" data-emoji="🦐">
+                <span class="match-count">0</span>
+                <span class="bet-amount">0</span>
+                <span class="symbol">🦐</span>
+                <div class="name">Shrimp</div>
+                <div class="name-khmer">បង្គា</div>
+            </div>
+            <div class="bet-card" data-symbol="tiger" data-emoji="🐅">
+                <span class="match-count">0</span>
+                <span class="bet-amount">0</span>
+                <span class="symbol">🐅</span>
+                <div class="name">Tiger</div>
+                <div class="name-khmer">ខ្លា</div>
+            </div>
+        </div>
+
+        <!-- Bet Controls -->
+        <div class="bet-controls">
+            <div class="chip chip-10 selected" data-value="10">10</div>
+            <div class="chip chip-50" data-value="50">50</div>
+            <div class="chip chip-100" data-value="100">100</div>
+            <div class="chip chip-500" data-value="500">500</div>
+            <div class="chip chip-1000" data-value="1000">1K</div>
+        </div>
+
+        <!-- Dice Area -->
+        <div class="dice-area">
+            <div class="dice-container">
+                <div class="dice" id="dice1">❓</div>
+                <div class="dice" id="dice2">❓</div>
+                <div class="dice" id="dice3">❓</div>
+            </div>
+            <div class="game-controls">
+                <button class="btn btn-clear" onclick="clearBets()">Clear Bets</button>
+                <button class="btn btn-roll" id="rollBtn" onclick="rollDice()">🎲 Roll Dice</button>
+                <button class="btn btn-new-game" onclick="newGame()">New Game</button>
+            </div>
+        </div>
+
+        <!-- Result Display -->
+        <div class="result-display" id="resultDisplay">
+            <h2 id="resultTitle"></h2>
+            <p id="resultMessage"></p>
+        </div>
+
+        <!-- History -->
+        <div class="history">
+            <h3>📜 Game History</h3>
+            <div class="history-list" id="historyList">
+                <p style="opacity: 0.6; text-align: center;">No games played yet</p>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions">
+            <h3>📖 How to Play</h3>
+            <ul>
+                <li>1. Select a chip value (10, 50, 100, 500, or 1000)</li>
+                <li>2. Click on the symbols you want to bet on</li>
+                <li>3. Click "Roll Dice" to roll the three dice</li>
+                <li>4. Win based on how many dice match your bet!</li>
+            </ul>
+            <h3 style="margin-top: 20px;">💰 Payout Table</h3>
+            <table class="payout-table">
+                <tr>
+                    <th>Matches</th>
+                    <th>Payout</th>
+                </tr>
+                <tr>
+                    <td>1 Match</td>
+                    <td>1:1 (Get bet back + same amount)</td>
+                </tr>
+                <tr>
+                    <td>2 Matches</td>
+                    <td>2:1 (Get bet back + 2x amount)</td>
+                </tr>
+                <tr>
+                    <td>3 Matches</td>
+                    <td>3:1 (Get bet back + 3x amount)</td>
+                </tr>
+                <tr>
+                    <td>0 Matches</td>
+                    <td>Lose bet</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let balance = 1000;
+        let selectedChip = 10;
+        let bets = {
+            gourd: 0,
+            crab: 0,
+            fish: 0,
+            rooster: 0,
+            shrimp: 0,
+            tiger: 0
+        };
+        let isRolling = false;
+        let gameHistory = [];
+
+        // Symbols mapping
+        const symbols = {
+            gourd: '🍐',
+            crab: '🦀',
+            fish: '🐟',
+            rooster: '🐓',
+            shrimp: '🦐',
+            tiger: '🐅'
+        };
+
+        const symbolNames = Object.keys(symbols);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeChips();
+            initializeBetCards();
+            updateDisplay();
+        });
+
+        // Chip Selection
+        function initializeChips() {
+            const chips = document.querySelectorAll('.chip');
+            chips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chips.forEach(c => c.classList.remove('selected'));
+                    chip.classList.add('selected');
+                    selectedChip = parseInt(chip.dataset.value);
+                });
+            });
+        }
+
+        // Bet Card Click
+        function initializeBetCards() {
+            const cards = document.querySelectorAll('.bet-card');
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    if (isRolling) return;
+                    
+                    const symbol = card.dataset.symbol;
+                    
+                    if (balance >= selectedChip) {
+                        bets[symbol] += selectedChip;
+                        balance -= selectedChip;
+                        updateDisplay();
+                        updateBetCard(card, symbol);
+                    } else {
+                        showMessage('Insufficient balance!', 'error');
+                    }
+                });
+
+                // Right click to remove bet
+                card.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (isRolling) return;
+                    
+                    const symbol = card.dataset.symbol;
+                    if (bets[symbol] > 0) {
+                        const refund = Math.min(bets[symbol], selectedChip);
+                        bets[symbol] -= refund;
+                        balance += refund;
+                        updateDisplay();
+                        updateBetCard(card, symbol);
+                    }
+                });
+            });
+        }
+
+        // Update bet card display
+        function updateBetCard(card, symbol) {
+            const betAmount = card.querySelector('.bet-amount');
+            betAmount.textContent = bets[symbol];
+            
+            if (bets[symbol] > 0) {
+                card.classList.add('has-bet', 'selected');
+            } else {
+                card.classList.remove('has-bet', 'selected');
+            }
+        }
+
+        // Update display
+        function updateDisplay() {
+            document.getElementById('balance').textContent = balance;
+            document.getElementById('totalBet').textContent = getTotalBet();
+            
+            // Update roll button state
+            const rollBtn = document.getElementById('rollBtn');
+            rollBtn.disabled = getTotalBet() === 0 || isRolling;
+        }
+
+        // Get total bet
+        function getTotalBet() {
+            return Object.values(bets).reduce((sum, bet) => sum + bet, 0);
+        }
+
+        // Clear all bets
+        function clearBets() {
+            if (isRolling) return;
+            
+            const totalBet = getTotalBet();
+            balance += totalBet;
+            
+            Object.keys(bets).forEach(symbol => {
+                bets[symbol] = 0;
+            });
+            
+            document.querySelectorAll('.bet-card').forEach(card => {
+                card.classList.remove('has-bet', 'selected', 'matched');
+                card.querySelector('.bet-amount').textContent = '0';
+                card.querySelector('.match-count').textContent = '0';
+                card.querySelector('.match-count').style.display = 'none';
+            });
+            
+            updateDisplay();
+            hideResult();
+        }
+
+        // Roll dice
+        function rollDice() {
+            if (isRolling || getTotalBet() === 0) return;
+            
+            isRolling = true;
+            hideResult();
+            
+            const dice = [
+                document.getElementById('dice1'),
+                document.getElementById('dice2'),
+                document.getElementById('dice3')
+            ];
+            
+            // Start rolling animation
+            dice.forEach(d => d.classList.add('rolling'));
+            
+            // Rolling animation
+            let rollCount = 0;
+            const maxRolls = 20;
+            const rollInterval = setInterval(() => {
+                dice.forEach(d => {
+                    const randomSymbol = symbolNames[Math.floor(Math.random() * symbolNames.length)];
+                    d.textContent = symbols[randomSymbol];
+                });
+                
+                rollCount++;
+                if (rollCount >= maxRolls) {
+                    clearInterval(rollInterval);
+                    finishRoll(dice);
+                }
+            }, 100);
+        }
+
+        // Finish roll and calculate results
+        function finishRoll(dice) {
+            // Generate final results
+            const results = [];
+            dice.forEach(d => {
+                d.classList.remove('rolling');
+                const randomSymbol = symbolNames[Math.floor(Math.random() * symbolNames.length)];
+                results.push(randomSymbol);
+                d.textContent = symbols[randomSymbol];
+            });
+            
+            // Count matches for each symbol
+            const matchCounts = {};
+            symbolNames.forEach(symbol => {
+                matchCounts[symbol] = results.filter(r => r === symbol).length;
+            });
+            
+            // Calculate winnings
+            let totalWinnings = 0;
+            let totalLost = 0;
+            
+            document.querySelectorAll('.bet-card').forEach(card => {
+                const symbol = card.dataset.symbol;
+                const bet = bets[symbol];
+                const matches = matchCounts[symbol];
+                
+                card.querySelector('.match-count').textContent = matches;
+                
+                if (matches > 0 && bet > 0) {
+                    card.classList.add('matched');
+                    card.querySelector('.match-count').style.display = 'flex';
+                    totalWinnings += bet + (bet * matches); // Return bet + winnings
+                } else if (bet > 0) {
+                    totalLost += bet;
+                }
+            });
+            
+            // Update balance
+            balance += totalWinnings;
+            
+            // Show result
+            const netResult = totalWinnings - getTotalBet();
+            showResult(netResult, results);
+            
+            // Add to history
+            addToHistory(results, netResult);
+            
+            // Reset bets
+            Object.keys(bets).forEach(symbol => {
+                bets[symbol] = 0;
+            });
+            
+            // Celebration for big wins
+            if (netResult > 0) {
+                createConfetti();
+            }
+            
+            isRolling = false;
+            updateDisplay();
+        }
+
+        // Show result
+        function showResult(netResult, diceResults) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+            
+            resultDisplay.classList.remove('win', 'lose');
+            
+            if (netResult > 0) {
+                resultDisplay.classList.add('win');
+                resultTitle.textContent = '🎉 You Win! 🎉';
+                resultMessage.textContent = `You won ${netResult} ៛!`;
+            } else if (netResult < 0) {
+                resultDisplay.classList.add('lose');
+                resultTitle.textContent = '😢 You Lose';
+                resultMessage.textContent = `You lost ${Math.abs(netResult)} ៛`;
+            } else {
+                resultDisplay.classList.add('win');
+                resultTitle.textContent = '😊 Break Even';
+                resultMessage.textContent = 'You got your bet back!';
+            }
+            
+            resultDisplay.classList.add('show');
+        }
+
+        // Hide result
+        function hideResult() {
+            document.getElementById('resultDisplay').classList.remove('show');
+        }
+
+        // Add to history
+        function addToHistory(results, netResult) {
+            const historyList = document.getElementById('historyList');
+            
+            // Clear "no games" message
+            if (gameHistory.length === 0) {
+                historyList.innerHTML = '';
+            }
+            
+            gameHistory.unshift({ results, netResult });
+            
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.innerHTML = `
+                <span class="dice-result">${results.map(r => symbols[r]).join(' ')}</span>
+                <span class="${netResult >= 0 ? 'win-amount' : 'lose-amount'}">
+                    ${netResult >= 0 ? '+' : ''}${netResult} ៛
+                </span>
+            `;
+            
+            historyList.insertBefore(historyItem, historyList.firstChild);
+            
+            // Keep only last 10 entries
+            if (gameHistory.length > 10) {
+                gameHistory.pop();
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+
+        // New game
+        function newGame() {
+            if (isRolling) return;
+            
+            balance = 1000;
+            clearBets();
+            gameHistory = [];
+            
+            document.getElementById('historyList').innerHTML = 
+                '<p style="opacity: 0.6; text-align: center;">No games played yet</p>';
+            
+            document.querySelectorAll('.dice').forEach(d => {
+                d.textContent = '❓';
+            });
+            
+            document.querySelectorAll('.bet-card').forEach(card => {
+                card.classList.remove('matched');
+                card.querySelector('.match-count').style.display = 'none';
+            });
+            
+            updateDisplay();
+            hideResult();
+            
+            showMessage('New game started! Good luck! 🍀', 'success');
+        }
+
+        // Show temporary message
+        function showMessage(text, type) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+            
+            resultDisplay.classList.remove('win', 'lose');
+            resultDisplay.classList.add(type === 'success' ? 'win' : 'lose');
+            resultTitle.textContent = text;
+            resultMessage.textContent = '';
+            resultDisplay.classList.add('show');
+            
+            setTimeout(() => {
+                resultDisplay.classList.remove('show');
+            }, 2000);
+        }
+
+        // Create confetti effect
+        function createConfetti() {
+            const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ff9ff3'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 4000);
+                }, i * 30);
+            }
+        }
+    </script>
+</body>
+</html>
